@@ -6,6 +6,7 @@
 
 namespace Test;
 
+use App\Email\EmailService;
 use App\Reservation\Reservation;
 use App\Reservation\ReservationRepository;
 use App\Reservation\ReservationService;
@@ -33,6 +34,11 @@ class ReservationTest extends TestCase
     private $reservationService;
 
     /**
+     * @var MockObject|EmailService $emailService mock for sending emails
+     */
+    private $emailService;
+
+    /**
      * Sets up mocks and services.
      *
      * @throws ReflectionException
@@ -42,7 +48,12 @@ class ReservationTest extends TestCase
         $this->reservationRepository = $this->getMockBuilder(ReservationRepository::class)
             ->setMethods(['insert', 'getLastInsertedId'])
             ->getMock();
-        $this->reservationService = new ReservationService($this->reservationRepository);
+
+        $this->emailService = $this->getMockBuilder(EmailService::class)
+            ->setMethods(['send'])
+            ->getMock();
+
+        $this->reservationService = new ReservationService($this->reservationRepository, $this->emailService);
     }
 
     /**
@@ -56,7 +67,29 @@ class ReservationTest extends TestCase
     }
 
     /**
-     * Gets predefined reservation.
+     * Tests sending confirmation email.
+     *
+     * @throws Exception
+     */
+    public function testSendConfirmationEmail(): void
+    {
+        $this->emailService->expects($this->once())
+            ->method('send')
+            ->with(
+                $this->equalTo(EmailService::EVENT_CONFIRM),
+                $this->equalTo('example@example.com'),
+                $this->equalTo([
+                    'reservation_id' => 1,
+                    'machine_number' => 1,
+                    'pin' => 49971
+                ])
+            );
+
+        $this->getSampleReservation();
+    }
+
+    /**
+     * Helper; gets predefined reservation.
      *
      * @return Reservation sample reservation with predefined values
      *
