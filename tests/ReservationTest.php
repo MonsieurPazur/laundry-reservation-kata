@@ -82,6 +82,25 @@ class ReservationTest extends TestCase
     }
 
     /**
+     * Tests creating Reservation object "just like that".
+     *
+     * @throws Exception
+     */
+    public function testSimpleCreateReservation(): void
+    {
+        // Predefined data.
+        $dateTime = '2020-01-19 23:59:00';
+        $phone = '+48564777597';
+        $email = 'some_email@some_domain.com';
+        $id = 69;
+
+        $reservation = new Reservation(new DateTime($dateTime), $phone, $email);
+        $reservation->setId($id);
+
+        $this->assertEquals($id, $reservation->getId());
+    }
+
+    /**
      * Tests creating reservation, including saving to database, sending email and locking machine.
      *
      * @throws Exception
