@@ -106,7 +106,7 @@ class ReservationTest extends TestCase
         $email = 'example@example.com';
         $reservationId = 1;
         $machineId = 1;
-        $pin = 49971;
+        $pin = '49971';
 
         // Mock inserting into repository.
         $this->reservationRepository->expects($this->once())

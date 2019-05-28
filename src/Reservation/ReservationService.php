@@ -9,6 +9,7 @@ namespace App\Reservation;
 use App\Email\EmailService;
 use App\Machine\MachineService;
 use DateTime;
+use Exception;
 
 /**
  * Class ReservationService
@@ -58,6 +59,8 @@ class ReservationService
      * @param string $email user's email address
      *
      * @return Reservation newly created and saved reservation
+     *
+     * @throws Exception
      */
     public function create(DateTime $dateTime, string $phone, string $email): Reservation
     {
@@ -81,9 +84,9 @@ class ReservationService
      * @param string $email where to
      * @param int $reservationId id of a reservation
      * @param int $machineId specific machine's id
-     * @param int $pin code to access machine
+     * @param string $pin code to access machine
      */
-    private function sendConfirmMail(string $email, int $reservationId, int $machineId, int $pin): void
+    private function sendConfirmMail(string $email, int $reservationId, int $machineId, string $pin): void
     {
         $this->emailService->send(
             EmailService::EVENT_CONFIRM,
@@ -102,11 +105,11 @@ class ReservationService
      * @param int $machineId specific machine's id
      * @param int $reservationId id of a reservation
      * @param DateTime $dateTime date and time of reservation
-     * @param int $pin code to access machine
+     * @param string $pin code to access machine
      *
      * @return bool true if locking was successful
      */
-    private function lockMachine(int $machineId, int $reservationId, DateTime $dateTime, int $pin): bool
+    private function lockMachine(int $machineId, int $reservationId, DateTime $dateTime, string $pin): bool
     {
         return $this->machineService->lock($machineId, $reservationId, $dateTime, $pin);
     }

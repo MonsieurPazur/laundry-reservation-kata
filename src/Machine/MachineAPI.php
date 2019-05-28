@@ -21,11 +21,11 @@ class MachineAPI
      * @param int $machineId which machine to lock
      * @param int $reservationId id of this machine's reservation
      * @param DateTime $reservationDateTime date and time of reservation
-     * @param int $pin access code
+     * @param string $pin access code
      *
      * @return bool true if locking was successful
      */
-    public function lock(int $machineId, int $reservationId, DateTime $reservationDateTime, int $pin): bool
+    public function lock(int $machineId, int $reservationId, DateTime $reservationDateTime, string $pin): bool
     {
     }
 
