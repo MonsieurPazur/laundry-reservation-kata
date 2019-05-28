@@ -7,6 +7,7 @@
 namespace App\Reservation;
 
 use App\Email\EmailService;
+use App\Machine\MachineService;
 use DateTime;
 
 /**
@@ -27,15 +28,25 @@ class ReservationService
     private $emailService;
 
     /**
+     * @var MachineService $machineService service for getting machine data
+     */
+    private $machineService;
+
+    /**
      * ReservationService constructor.
      *
      * @param ReservationRepository $reservationRepository
      * @param EmailService $emailService
+     * @param MachineService $machineService
      */
-    public function __construct(ReservationRepository $reservationRepository, EmailService $emailService)
-    {
+    public function __construct(
+        ReservationRepository $reservationRepository,
+        EmailService $emailService,
+        MachineService $machineService
+    ) {
         $this->reservationRepository = $reservationRepository;
         $this->emailService = $emailService;
+        $this->machineService = $machineService;
     }
 
     /**
@@ -55,11 +66,15 @@ class ReservationService
         $reservationId = $this->reservationRepository->getLastInsertedId();
         $reservation->setId($reservationId);
 
-        $this->emailService->send(EmailService::EVENT_CONFIRM, $email, [
-            'reservation_id' => $reservationId,
-            'machine_number' => 1,
-            'pin' => 49971
-        ]);
+        $this->emailService->send(
+            EmailService::EVENT_CONFIRM,
+            $email,
+            [
+                'reservation_id' => $reservationId,
+                'machine_id' => $this->machineService->getFirstAvailableMachineId(),
+                'pin' => $this->machineService->generatePIN()
+            ]
+        );
 
         return $reservation;
     }

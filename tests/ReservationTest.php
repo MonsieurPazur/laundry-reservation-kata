@@ -7,6 +7,7 @@
 namespace Test;
 
 use App\Email\EmailService;
+use App\Machine\MachineService;
 use App\Reservation\Reservation;
 use App\Reservation\ReservationRepository;
 use App\Reservation\ReservationService;
@@ -34,6 +35,11 @@ class ReservationTest extends TestCase
     private $reservationService;
 
     /**
+     * @var MockObject|MachineService $machineService mock for generating machine data
+     */
+    private $machineService;
+
+    /**
      * @var MockObject|EmailService $emailService mock for sending emails
      */
     private $emailService;
@@ -53,7 +59,15 @@ class ReservationTest extends TestCase
             ->setMethods(['send'])
             ->getMock();
 
-        $this->reservationService = new ReservationService($this->reservationRepository, $this->emailService);
+        $this->machineService = $this->getMockBuilder(MachineService::class)
+            ->setMethods(['getFirstAvailableMachineId', 'generatePIN'])
+            ->getMock();
+
+        $this->reservationService = new ReservationService(
+            $this->reservationRepository,
+            $this->emailService,
+            $this->machineService
+        );
     }
 
     /**
@@ -73,6 +87,12 @@ class ReservationTest extends TestCase
      */
     public function testSendConfirmationEmail(): void
     {
+        $this->machineService->expects($this->once())
+            ->method('getFirstAvailableMachineId')
+            ->willReturn(1);
+        $this->machineService->expects($this->once())
+            ->method('generatePIN')
+            ->willReturn(49971);
         $this->emailService->expects($this->once())
             ->method('send')
             ->with(
@@ -80,7 +100,7 @@ class ReservationTest extends TestCase
                 $this->equalTo('example@example.com'),
                 $this->equalTo([
                     'reservation_id' => 1,
-                    'machine_number' => 1,
+                    'machine_id' => 1,
                     'pin' => 49971
                 ])
             );
