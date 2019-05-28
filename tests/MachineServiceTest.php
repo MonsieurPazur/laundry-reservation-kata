@@ -77,7 +77,7 @@ class MachineServiceTest extends TestCase
     {
         $machineId = $this->machineService->getFirstAvailableMachineId();
         $this->assertGreaterThanOrEqual(1, $machineId);
-        $this->assertLessThanOrEqual(25, $machineId);
+        $this->assertLessThanOrEqual(MachineService::MACHINES_COUNT, $machineId);
     }
 
     /**
@@ -88,6 +88,7 @@ class MachineServiceTest extends TestCase
     public function testGeneratePIN(): void
     {
         $pin = $this->machineService->generatePIN();
+        $this->assertEquals(MachineService::PIN_DIGITS, strlen($pin));
         $this->assertGreaterThanOrEqual(0, (int)$pin);
         $this->assertLessThanOrEqual(99999, (int)$pin);
     }

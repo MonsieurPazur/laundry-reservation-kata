@@ -17,6 +17,16 @@ use Exception;
 class MachineService
 {
     /**
+     * @var int how many machines are available
+     */
+    public const MACHINES_COUNT = 25;
+
+    /**
+     * @var int how long should PIN be
+     */
+    public const PIN_DIGITS = 5;
+
+    /**
      * @var MachineAPI $machineApi API to communicate with machines
      */
     private $machineApi;
@@ -67,7 +77,7 @@ class MachineService
     public function getFirstAvailableMachineId(): int
     {
         // This is to simplify domain.
-        return random_int(1, 25);
+        return random_int(1, self::MACHINES_COUNT);
     }
 
     /**
@@ -79,6 +89,10 @@ class MachineService
      */
     public function generatePIN(): string
     {
-        return str_pad(random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+        $pin = '';
+        for ($i = 0; $i < self::PIN_DIGITS; $i++) {
+            $pin .= random_int(0, 9);
+        }
+        return $pin;
     }
 }
