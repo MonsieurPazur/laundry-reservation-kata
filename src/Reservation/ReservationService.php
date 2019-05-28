@@ -66,16 +66,48 @@ class ReservationService
         $reservationId = $this->reservationRepository->getLastInsertedId();
         $reservation->setId($reservationId);
 
+        $machineId = $this->machineService->getFirstAvailableMachineId();
+        $pin = $this->machineService->generatePIN();
+
+        $this->sendConfirmMail($email, $reservationId, $machineId, $pin);
+        $this->lockMachine($machineId, $reservationId, $dateTime, $pin);
+
+        return $reservation;
+    }
+
+    /**
+     * Helper; sends reservation confirmation mail via emailService.
+     *
+     * @param string $email where to
+     * @param int $reservationId id of a reservation
+     * @param int $machineId specific machine's id
+     * @param int $pin code to access machine
+     */
+    private function sendConfirmMail(string $email, int $reservationId, int $machineId, int $pin): void
+    {
         $this->emailService->send(
             EmailService::EVENT_CONFIRM,
             $email,
             [
                 'reservation_id' => $reservationId,
-                'machine_id' => $this->machineService->getFirstAvailableMachineId(),
-                'pin' => $this->machineService->generatePIN()
+                'machine_id' => $machineId,
+                'pin' => $pin
             ]
         );
+    }
 
-        return $reservation;
+    /**
+     * Locks specific machine via machineApi;
+     *
+     * @param int $machineId specific machine's id
+     * @param int $reservationId id of a reservation
+     * @param DateTime $dateTime date and time of reservation
+     * @param int $pin code to access machine
+     *
+     * @return bool true if locking was successful
+     */
+    private function lockMachine(int $machineId, int $reservationId, DateTime $dateTime, int $pin): bool
+    {
+        return $this->machineService->lock($machineId, $reservationId, $dateTime, $pin);
     }
 }
