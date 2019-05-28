@@ -4,8 +4,9 @@
  * Handles reservation logic.
  */
 
-namespace App;
+namespace App\Reservation;
 
+use App\Entity;
 use DateTime;
 
 /**
@@ -13,7 +14,7 @@ use DateTime;
  *
  * @package App
  */
-class Reservation
+class Reservation extends Entity
 {
     /**
      * Reservation constructor.
