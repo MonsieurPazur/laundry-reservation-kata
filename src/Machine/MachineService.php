@@ -83,6 +83,10 @@ class MachineService
     /**
      * Generates 5-digit PIN for unlocking machines.
      *
+     * This can be also done generating whole number all at once
+     * and by str_pad() result with 0's. Though this metod can't be
+     * simply made variable by only one const like the one below.
+     *
      * @return string 5-digit PIN
      *
      * @throws Exception

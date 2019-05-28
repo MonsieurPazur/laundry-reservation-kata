@@ -23,7 +23,6 @@ class ReservationRepository implements RepositoryInterface
      */
     public function insert(Entity $entity): void
     {
-        // TODO: Implement insert() method.
     }
 
     /**
@@ -33,6 +32,5 @@ class ReservationRepository implements RepositoryInterface
      */
     public function getLastInsertedId(): int
     {
-        // TODO: Implement getLastInsertedId() method.
     }
 }
