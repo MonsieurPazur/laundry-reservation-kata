@@ -58,7 +58,7 @@ class ReservationTest extends TestCase
     protected function setUp(): void
     {
         $this->reservationRepository = $this->getMockBuilder(ReservationRepository::class)
-            ->setMethods(['insert', 'getLastInsertedId'])
+            ->setMethods(['insert', 'getLastInsertedId', 'getByMachineId'])
             ->getMock();
 
         $this->emailService = $this->getMockBuilder(EmailService::class)
@@ -88,16 +88,8 @@ class ReservationTest extends TestCase
      */
     public function testSimpleCreateReservation(): void
     {
-        // Predefined data.
-        $dateTime = '2020-01-19 23:59:00';
-        $phone = '+48564777597';
-        $email = 'some_email@some_domain.com';
-        $id = 69;
-
-        $reservation = new Reservation(new DateTime($dateTime), $phone, $email);
-        $reservation->setId($id);
-
-        $this->assertEquals($id, $reservation->getId());
+        $reservation = $this->getSampleRawReservation();
+        $this->assertEquals(69, $reservation->getId());
     }
 
     /**
@@ -108,6 +100,20 @@ class ReservationTest extends TestCase
     public function testCreateReservation(): void
     {
         $this->getSampleReservation();
+    }
+
+    /**
+     * Tests claiming reservation.
+     *
+     * @throws Exception
+     */
+    public function testClaimReservation(): void
+    {
+        $this->reservationRepository->expects($this->once())
+            ->method('getByMachineId')
+            ->with($this->equalTo(1))
+            ->willReturn($this->getSampleRawReservation());
+        $this->reservationService->claim(1, 49971);
     }
 
     /**
@@ -168,5 +174,26 @@ class ReservationTest extends TestCase
             ->willReturn(true);
 
         return $this->reservationService->create(new DateTime($dateTime), $phone, $email);
+    }
+
+    /**
+     * Helper; creates sample reservation (without any associated logic).
+     *
+     * @return Reservation predefined raw Reservation object
+     *
+     * @throws Exception
+     */
+    private function getSampleRawReservation(): Reservation
+    {
+        // Predefined data.
+        $dateTime = '2020-01-19 23:59:00';
+        $phone = '+48564777597';
+        $email = 'some_email@some_domain.com';
+        $id = 69;
+
+        $reservation = new Reservation(new DateTime($dateTime), $phone, $email);
+        $reservation->setId($id);
+
+        return $reservation;
     }
 }

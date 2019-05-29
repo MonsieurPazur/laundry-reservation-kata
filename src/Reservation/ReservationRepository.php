@@ -33,4 +33,15 @@ class ReservationRepository implements RepositoryInterface
     public function getLastInsertedId(): int
     {
     }
+
+    /**
+     * Gets Reservation by specified machine id.
+     *
+     * @param int $machineId id of machine that this reservation is associated with.
+     *
+     * @return Reservation associated reservation
+     */
+    public function getByMachineId(int $machineId): Reservation
+    {
+    }
 }

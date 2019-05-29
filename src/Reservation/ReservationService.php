@@ -79,6 +79,15 @@ class ReservationService
     }
 
     /**
+     * @param int $machineId
+     * @param string $pin
+     */
+    public function claim(int $machineId, string $pin): void
+    {
+        $reservation = $this->reservationRepository->getByMachineId($machineId);
+    }
+
+    /**
      * Helper; sends reservation confirmation mail via emailService.
      *
      * @param string $email where to

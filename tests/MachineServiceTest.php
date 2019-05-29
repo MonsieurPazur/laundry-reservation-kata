@@ -59,6 +59,20 @@ class MachineServiceTest extends TestCase
     }
 
     /**
+     * Tests lock fail.
+     *
+     * @throws Exception
+     */
+    public function testLockFailed(): void
+    {
+        $this->machineApi->expects($this->once())
+            ->method('lock')
+            ->willReturn(false);
+        $locked = $this->machineService->lock(1, 1, new DateTime(), '00000');
+        $this->assertFalse($locked);
+    }
+
+    /**
      * Tests unlocking machine.
      */
     public function testUnlock(): void
