@@ -22,6 +22,16 @@ class Reservation extends Entity
     private $dateTime;
 
     /**
+     * @var string $phone user's cell phone number
+     */
+    private $phone;
+
+    /**
+     * @var string $email user's email
+     */
+    private $email;
+
+    /**
      * @var int $machineId id of associated machine
      */
     private $machineId;
@@ -43,6 +53,8 @@ class Reservation extends Entity
     public function __construct(DateTime $dateTime, string $phone, string $email, int $machineId, string $pin)
     {
         $this->dateTime = $dateTime;
+        $this->phone = $phone;
+        $this->email = $email;
         $this->machineId = $machineId;
         $this->pin = $pin;
     }
@@ -55,6 +67,26 @@ class Reservation extends Entity
     public function getDateTime(): DateTime
     {
         return $this->dateTime;
+    }
+
+    /**
+     * Gets cell phone number associated with reservation.
+     *
+     * @return string user's cell phone number
+     */
+    public function getPhone(): string
+    {
+        return $this->phone;
+    }
+
+    /**
+     * Gets email associated with reservation.
+     *
+     * @return string user's email
+     */
+    public function getEmail(): string
+    {
+        return $this->email;
     }
 
     /**

@@ -51,9 +51,15 @@ class ReservationTest extends TestCase
     private $emailService;
 
     /**
+     * @var Reservation $sampleReservation predefined reservation
+     */
+    private $sampleReservation;
+
+    /**
      * Sets up mocks and services.
      *
      * @throws ReflectionException
+     * @throws Exception
      */
     protected function setUp(): void
     {
@@ -87,17 +93,8 @@ class ReservationTest extends TestCase
             $this->emailService,
             $this->machineService
         );
-    }
 
-    /**
-     * Tests creating Reservation object "just like that".
-     *
-     * @throws Exception
-     */
-    public function testSimpleCreateReservation(): void
-    {
-        $reservation = $this->getSampleRawReservation();
-        $this->assertEquals(69, $reservation->getId());
+        $this->setSampleReservation();
     }
 
     /**
@@ -107,7 +104,60 @@ class ReservationTest extends TestCase
      */
     public function testCreateReservation(): void
     {
-        $this->getSampleReservation();
+        // Creating fresh, empty (no id) reservation for repository to insert.
+        $emptyReservation = new Reservation(
+            $this->sampleReservation->getDateTime(),
+            $this->sampleReservation->getPhone(),
+            $this->sampleReservation->getEmail(),
+            $this->sampleReservation->getMachineId(),
+            $this->sampleReservation->getPIN()
+        );
+
+        // Mock inserting into repository.
+        $this->reservationRepository->expects($this->once())
+            ->method('insert')
+            ->with($this->equalTo($emptyReservation));
+        $this->reservationRepository->expects($this->once())
+            ->method('getLastInsertedId')
+            ->willReturn($this->sampleReservation->getId());
+
+        // Mock getting machine data.
+        $this->machineService->expects($this->once())
+            ->method('getFirstAvailableMachineId')
+            ->willReturn($this->sampleReservation->getMachineId());
+        $this->machineService->expects($this->once())
+            ->method('generatePIN')
+            ->willReturn($this->sampleReservation->getPIN());
+
+        // Mock sending email.
+        $this->emailService->expects($this->once())
+            ->method('send')
+            ->with(
+                $this->equalTo(EmailService::EVENT_CONFIRM),
+                $this->equalTo($this->sampleReservation->getEmail()),
+                $this->equalTo([
+                    'reservation_id' => $this->sampleReservation->getId(),
+                    'machine_id' => $this->sampleReservation->getMachineId(),
+                    'pin' => $this->sampleReservation->getPIN()
+                ])
+            );
+
+        // Mock locking machine.
+        $this->machineApi->expects($this->once())
+            ->method('lock')
+            ->with(
+                $this->equalTo($this->sampleReservation->getMachineId()),
+                $this->equalTo($this->sampleReservation->getId()),
+                $this->equalTo($this->sampleReservation->getDateTime()),
+                $this->equalTo($this->sampleReservation->getPIN())
+            )
+            ->willReturn(true);
+
+        $this->reservationService->create(
+            $this->sampleReservation->getDateTime(),
+            $this->sampleReservation->getPhone(),
+            $this->sampleReservation->getEmail()
+        );
     }
 
     /**
@@ -120,20 +170,26 @@ class ReservationTest extends TestCase
         // Getting reservation from repository.
         $this->reservationRepository->expects($this->once())
             ->method('getByMachineId')
-            ->with($this->equalTo(1))
-            ->willReturn($this->getSampleRawReservation());
+            ->with($this->equalTo($this->sampleReservation->getMachineId()))
+            ->willReturn($this->sampleReservation);
 
         // Updating after successful claim.
         $this->reservationRepository->expects($this->once())
             ->method('updateAsUsed')
-            ->with($this->equalTo(69));
+            ->with($this->equalTo($this->sampleReservation->getId()));
 
         // Unlocking machine.
         $this->machineApi->expects($this->once())
             ->method('unlock')
-            ->with($this->equalTo(1), $this->equalTo(69));
+            ->with(
+                $this->equalTo($this->sampleReservation->getMachineId()),
+                $this->equalTo($this->sampleReservation->getId())
+            );
 
-        $this->reservationService->claim(1, 49971);
+        $this->reservationService->claim(
+            $this->sampleReservation->getMachineId(),
+            $this->sampleReservation->getPIN()
+        );
     }
 
     /**
@@ -141,118 +197,78 @@ class ReservationTest extends TestCase
      *
      * @throws Exception
      */
-    public function testClaimReservationWrongPIN(): void
+    public function testFailedClaimReservation(): void
     {
-        // Getting reservation from repository.
-        $this->reservationRepository->expects($this->exactly(5))
-            ->method('getByMachineId')
-            ->with($this->equalTo(1))
-            ->willReturn($this->getSampleRawReservation());
+        // Predefined data.
+        $wrongPin = '17994';
+        $newPin = '77627';
 
-        // Getting reservation's failed attempt counter.
-        $this->reservationRepository->expects($this->exactly(5))
-            ->method('getFailedAttempts')
-            ->with($this->equalTo(69))
-            ->willReturnOnConsecutiveCalls(0, 1, 2, 3, 4);
+        $this->prepareFailedClaimReservation();
 
         // Updating reservation's failed attempt counter.
-        $this->reservationRepository->expects($this->exactly(5))
+        $this->reservationRepository->expects($this->exactly(ReservationService::MAX_FAILED_ATTEMPTS))
             ->method('updateFailedAttempts')
-            ->with($this->equalTo(69));
+            ->with($this->equalTo($this->sampleReservation->getId()));
 
         // Generating new PIN.
         $this->machineService->expects($this->once())
             ->method('generatePIN')
-            ->willReturn(77627);
+            ->willReturn($newPin);
 
         // Updating new PIN.
         $this->reservationRepository->expects($this->once())
             ->method('updatePIN')
-            ->with($this->equalTo(69), $this->equalTo(77627));
+            ->with($this->equalTo($this->sampleReservation->getId()), $this->equalTo($newPin));
 
         // Locking machine with new values.
         $this->machineApi->expects($this->once())
             ->method('lock')
             ->with(
-                $this->equalTo(1),
-                $this->equalTo(69),
-                $this->equalTo(new DateTime('2020-01-19 23:59:00')),
-                $this->equalTo(77627)
+                $this->equalTo($this->sampleReservation->getMachineId()),
+                $this->equalTo($this->sampleReservation->getId()),
+                $this->equalTo($this->sampleReservation->getDateTime()),
+                $this->equalTo($newPin)
             );
 
         for ($i = 0; $i < 5; $i++) {
-            $this->reservationService->claim(1, 17994);
+            $this->reservationService->claim(1, $wrongPin);
         }
     }
 
     /**
-     * Helper; gets predefined reservation.
-     *
-     * @return Reservation sample reservation with predefined values
-     *
      * @throws Exception
      */
-    private function getSampleReservation() : Reservation
+    public function testSendSMSAfterFailedClaimReservation(): void
     {
         // Predefined data.
-        $dateTime = '2019-05-28 11:29:00';
-        $phone = '+48778398445';
-        $email = 'example@example.com';
-        $reservationId = 1;
-        $machineId = 1;
-        $pin = '49971';
+        $wrongPin = '17994';
+        $newPin = '77627';
 
-        // Mock inserting into repository.
-        $this->reservationRepository->expects($this->once())
-            ->method('insert')
-            ->with($this->equalTo(new Reservation(new DateTime($dateTime), $phone, $email, $machineId, $pin)));
-        $this->reservationRepository->expects($this->once())
-            ->method('getLastInsertedId')
-            ->willReturn($reservationId);
+        $this->prepareFailedClaimReservation();
 
-        // Mock getting machine data.
-        $this->machineService->expects($this->once())
-            ->method('getFirstAvailableMachineId')
-            ->willReturn($machineId);
+        // Generating new PIN.
         $this->machineService->expects($this->once())
             ->method('generatePIN')
-            ->willReturn($pin);
+            ->willReturn($newPin);
 
-        // Mock sending email.
-        $this->emailService->expects($this->once())
+        $this->SMSService->expects($this->once())
             ->method('send')
             ->with(
-                $this->equalTo(EmailService::EVENT_CONFIRM),
-                $this->equalTo($email),
-                $this->equalTo([
-                    'reservation_id' => $reservationId,
-                    'machine_id' => $machineId,
-                    'pin' => $pin
-                ])
+                $this->equalTo($this->sampleReservation->getPhone()),
+                $this->equalTo($newPin)
             );
 
-        // Mock locking machine.
-        $this->machineApi->expects($this->once())
-            ->method('lock')
-            ->with(
-                $this->equalTo($machineId),
-                $this->equalTo($reservationId),
-                $this->equalTo(new DateTime($dateTime)),
-                $this->equalTo($pin)
-            )
-            ->willReturn(true);
-
-        return $this->reservationService->create(new DateTime($dateTime), $phone, $email);
+        for ($i = 0; $i < 5; $i++) {
+            $this->reservationService->claim($this->sampleReservation->getMachineId(), $wrongPin);
+        }
     }
 
     /**
      * Helper; creates sample reservation (without any associated logic).
      *
-     * @return Reservation predefined raw Reservation object
-     *
      * @throws Exception
      */
-    private function getSampleRawReservation(): Reservation
+    private function setSampleReservation(): void
     {
         // Predefined data.
         $dateTime = '2020-01-19 23:59:00';
@@ -265,6 +281,26 @@ class ReservationTest extends TestCase
         $reservation = new Reservation(new DateTime($dateTime), $phone, $email, $machineId, $pin);
         $reservation->setId($id);
 
-        return $reservation;
+        $this->sampleReservation = $reservation;
+    }
+
+    /**
+     * Prepares data to be returned upon failed reservation claim.
+     *
+     * @throws Exception
+     */
+    private function prepareFailedClaimReservation(): void
+    {
+        // Getting reservation from repository.
+        $this->reservationRepository->expects($this->exactly(ReservationService::MAX_FAILED_ATTEMPTS))
+            ->method('getByMachineId')
+            ->with($this->equalTo($this->sampleReservation->getMachineId()))
+            ->willReturn($this->sampleReservation);
+
+        // Getting reservation's failed attempt counter.
+        $this->reservationRepository->expects($this->exactly(ReservationService::MAX_FAILED_ATTEMPTS))
+            ->method('getFailedAttempts')
+            ->with($this->equalTo($this->sampleReservation->getId()))
+            ->willReturnOnConsecutiveCalls(0, 1, 2, 3, 4);
     }
 }
