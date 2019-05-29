@@ -88,6 +88,8 @@ class ReservationService
         if ($reservation->getPIN() === $pin) {
             $this->reservationRepository->updateAsUsed($reservation->getId());
             $this->machineService->unlock($machineId, $reservation->getId());
+        } else {
+            $this->reservationRepository->updateFailedAttempts($reservation->getId());
         }
     }
 

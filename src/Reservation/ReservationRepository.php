@@ -53,4 +53,13 @@ class ReservationRepository implements RepositoryInterface
     public function updateAsUsed(int $reservationId): void
     {
     }
+
+    /**
+     * Updates reservation, increases failed attempts counter.
+     *
+     * @param int $reservationId reservation to update
+     */
+    public function updateFailedAttempts(int $reservationId): void
+    {
+    }
 }

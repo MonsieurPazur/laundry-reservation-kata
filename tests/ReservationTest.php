@@ -58,7 +58,13 @@ class ReservationTest extends TestCase
     protected function setUp(): void
     {
         $this->reservationRepository = $this->getMockBuilder(ReservationRepository::class)
-            ->setMethods(['insert', 'getLastInsertedId', 'getByMachineId', 'updateAsUsed'])
+            ->setMethods([
+                'insert',
+                'getLastInsertedId',
+                'getByMachineId',
+                'updateAsUsed',
+                'updateFailedAttempts'
+            ])
             ->getMock();
 
         $this->emailService = $this->getMockBuilder(EmailService::class)
@@ -124,8 +130,31 @@ class ReservationTest extends TestCase
         $this->machineApi->expects($this->once())
             ->method('unlock')
             ->with($this->equalTo(1), $this->equalTo(69));
-        
+
         $this->reservationService->claim(1, 49971);
+    }
+
+    /**
+     * Tests claiming reservation with wrong PIN.
+     *
+     * @throws Exception
+     */
+    public function testClaimReservationWrongPIN(): void
+    {
+        // Getting reservation from repository.
+        $this->reservationRepository->expects($this->exactly(5))
+            ->method('getByMachineId')
+            ->with($this->equalTo(1))
+            ->willReturn($this->getSampleRawReservation());
+
+        // Updating reservation's failed attempt counter.
+        $this->reservationRepository->expects($this->exactly(5))
+            ->method('updateFailedAttempts')
+            ->with($this->equalTo(69));
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->reservationService->claim(1, 17994);
+        }
     }
 
     /**
