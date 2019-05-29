@@ -17,6 +17,11 @@ use DateTime;
 class Reservation extends Entity
 {
     /**
+     * @var DateTime $dateTime date and time of reservation
+     */
+    private $dateTime;
+
+    /**
      * @var int $machineId id of associated machine
      */
     private $machineId;
@@ -37,8 +42,19 @@ class Reservation extends Entity
      */
     public function __construct(DateTime $dateTime, string $phone, string $email, int $machineId, string $pin)
     {
+        $this->dateTime = $dateTime;
         $this->machineId = $machineId;
         $this->pin = $pin;
+    }
+
+    /**
+     * Gets date and time of reservation.
+     *
+     * @return DateTime date and time of reservation
+     */
+    public function getDateTime(): DateTime
+    {
+        return $this->dateTime;
     }
 
     /**

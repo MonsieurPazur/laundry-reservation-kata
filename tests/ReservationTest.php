@@ -62,8 +62,10 @@ class ReservationTest extends TestCase
                 'insert',
                 'getLastInsertedId',
                 'getByMachineId',
+                'getFailedAttempts',
                 'updateAsUsed',
-                'updateFailedAttempts'
+                'updateFailedAttempts',
+                'updatePIN'
             ])
             ->getMock();
 
@@ -147,10 +149,36 @@ class ReservationTest extends TestCase
             ->with($this->equalTo(1))
             ->willReturn($this->getSampleRawReservation());
 
+        // Getting reservation's failed attempt counter.
+        $this->reservationRepository->expects($this->exactly(5))
+            ->method('getFailedAttempts')
+            ->with($this->equalTo(69))
+            ->willReturnOnConsecutiveCalls(0, 1, 2, 3, 4);
+
         // Updating reservation's failed attempt counter.
         $this->reservationRepository->expects($this->exactly(5))
             ->method('updateFailedAttempts')
             ->with($this->equalTo(69));
+
+        // Generating new PIN.
+        $this->machineService->expects($this->once())
+            ->method('generatePIN')
+            ->willReturn(77627);
+
+        // Updating new PIN.
+        $this->reservationRepository->expects($this->once())
+            ->method('updatePIN')
+            ->with($this->equalTo(69), $this->equalTo(77627));
+
+        // Locking machine with new values.
+        $this->machineApi->expects($this->once())
+            ->method('lock')
+            ->with(
+                $this->equalTo(1),
+                $this->equalTo(69),
+                $this->equalTo(new DateTime('2020-01-19 23:59:00')),
+                $this->equalTo(77627)
+            );
 
         for ($i = 0; $i < 5; $i++) {
             $this->reservationService->claim(1, 17994);

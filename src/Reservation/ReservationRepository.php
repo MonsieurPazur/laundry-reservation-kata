@@ -55,11 +55,43 @@ class ReservationRepository implements RepositoryInterface
     }
 
     /**
-     * Updates reservation, increases failed attempts counter.
+     * Updates reservation failed attempts after failed claim.
+     *
+     * @param int $reservationId reservation to update
+     * @param int $number number of failed attempts to update with
+     */
+    public function updateFailedAttempts(int $reservationId, int $number): void
+    {
+    }
+
+
+    /**
+     * Resets failed reservation claim attemps to 0.
      *
      * @param int $reservationId reservation to update
      */
-    public function updateFailedAttempts(int $reservationId): void
+    public function resetFailedAttempts(int $reservationId): void
+    {
+    }
+
+    /**
+     * Gets number of failed reservation claim attempts.
+     *
+     * @param int $reservationId reservation to update
+     *
+     * @return int number of failed attempts so far
+     */
+    public function getFailedAttempts(int $reservationId): int
+    {
+    }
+
+    /**
+     * Updates reservation with new PIN.
+     *
+     * @param int $reservationId reservation to update
+     * @param string $pin new PIN to update with
+     */
+    public function updatePIN(int $reservationId, string $pin): void
     {
     }
 }

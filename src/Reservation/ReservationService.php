@@ -19,6 +19,11 @@ use Exception;
 class ReservationService
 {
     /**
+     * @var int max amount of failed reservation claim attempts before PIN reset
+     */
+    public const MAX_FAILED_ATTEMPTS = 5;
+
+    /**
      * @var ReservationRepository $reservationRepository repository for saving and getting reservations
      */
     private $reservationRepository;
@@ -73,7 +78,7 @@ class ReservationService
         $reservation->setId($reservationId);
 
         $this->sendConfirmMail($email, $reservationId, $machineId, $pin);
-        $this->lockMachine($machineId, $reservationId, $dateTime, $pin);
+        $this->machineService->lock($machineId, $reservationId, $dateTime, $pin);
 
         return $reservation;
     }
@@ -81,6 +86,8 @@ class ReservationService
     /**
      * @param int $machineId
      * @param string $pin
+     *
+     * @throws Exception
      */
     public function claim(int $machineId, string $pin): void
     {
@@ -89,7 +96,7 @@ class ReservationService
             $this->reservationRepository->updateAsUsed($reservation->getId());
             $this->machineService->unlock($machineId, $reservation->getId());
         } else {
-            $this->reservationRepository->updateFailedAttempts($reservation->getId());
+            $this->failedAttempt($machineId, $reservation);
         }
     }
 
@@ -115,17 +122,31 @@ class ReservationService
     }
 
     /**
-     * Locks specific machine via machineApi;
+     * Handles reservation failed attempt.
      *
-     * @param int $machineId specific machine's id
-     * @param int $reservationId id of a reservation
-     * @param DateTime $dateTime date and time of reservation
-     * @param string $pin code to access machine
+     * @param int $machineId which machine couldn't be unlocked
+     * @param Reservation $reservation reservation to update
      *
-     * @return bool true if locking was successful
+     * @throws Exception
      */
-    private function lockMachine(int $machineId, int $reservationId, DateTime $dateTime, string $pin): bool
+    private function failedAttempt(int $machineId, Reservation $reservation): void
     {
-        return $this->machineService->lock($machineId, $reservationId, $dateTime, $pin);
+        $failedAttempts = $this->reservationRepository->getFailedAttempts($reservation->getId());
+
+        // If this is last allowed failed attempt (hence -1).
+        if (self::MAX_FAILED_ATTEMPTS - 1 === $failedAttempts) {
+            $newPIN = $this->machineService->generatePIN();
+
+            // Updating new PIN.
+            $this->reservationRepository->updatePIN($reservation->getId(), $newPIN);
+
+            // Locking machine with new PIN.
+            $this->machineService->lock($machineId, $reservation->getId(), $reservation->getDateTime(), $newPIN);
+
+            // Resetting failed attempts counter.
+            $this->reservationRepository->updateFailedAttempts($reservation->getId(), 0);
+        } else {
+            $this->reservationRepository->updateFailedAttempts($reservation->getId(), $failedAttempts + 1);
+        }
     }
 }
