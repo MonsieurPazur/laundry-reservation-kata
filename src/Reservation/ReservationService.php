@@ -93,8 +93,11 @@ class ReservationService
     }
 
     /**
-     * @param int $machineId
-     * @param string $pin
+     * Claims reservation, checks whether PIN is correct, and unlocks machine
+     * when everything's fine.
+     *
+     * @param int $machineId id of machine to claim
+     * @param string $pin access code
      *
      * @throws Exception
      */
