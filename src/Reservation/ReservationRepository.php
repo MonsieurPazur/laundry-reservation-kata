@@ -44,4 +44,13 @@ class ReservationRepository implements RepositoryInterface
     public function getByMachineId(int $machineId): Reservation
     {
     }
+
+    /**
+     * Updates reservation, marks it as claimed.
+     *
+     * @param int $reservationId reservation to update
+     */
+    public function updateAsUsed(int $reservationId): void
+    {
+    }
 }

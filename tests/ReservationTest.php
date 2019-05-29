@@ -58,7 +58,7 @@ class ReservationTest extends TestCase
     protected function setUp(): void
     {
         $this->reservationRepository = $this->getMockBuilder(ReservationRepository::class)
-            ->setMethods(['insert', 'getLastInsertedId', 'getByMachineId'])
+            ->setMethods(['insert', 'getLastInsertedId', 'getByMachineId', 'updateAsUsed'])
             ->getMock();
 
         $this->emailService = $this->getMockBuilder(EmailService::class)
@@ -113,6 +113,10 @@ class ReservationTest extends TestCase
             ->method('getByMachineId')
             ->with($this->equalTo(1))
             ->willReturn($this->getSampleRawReservation());
+
+        $this->reservationRepository->expects($this->once())
+            ->method('updateAsUsed')
+            ->with($this->equalTo(69));
         $this->reservationService->claim(1, 49971);
     }
 
@@ -136,7 +140,7 @@ class ReservationTest extends TestCase
         // Mock inserting into repository.
         $this->reservationRepository->expects($this->once())
             ->method('insert')
-            ->with($this->equalTo(new Reservation(new DateTime($dateTime), $phone, $email)));
+            ->with($this->equalTo(new Reservation(new DateTime($dateTime), $phone, $email, $machineId, $pin)));
         $this->reservationRepository->expects($this->once())
             ->method('getLastInsertedId')
             ->willReturn($reservationId);
@@ -190,8 +194,10 @@ class ReservationTest extends TestCase
         $phone = '+48564777597';
         $email = 'some_email@some_domain.com';
         $id = 69;
+        $machineId = 1;
+        $pin = '49971';
 
-        $reservation = new Reservation(new DateTime($dateTime), $phone, $email);
+        $reservation = new Reservation(new DateTime($dateTime), $phone, $email, $machineId, $pin);
         $reservation->setId($id);
 
         return $reservation;

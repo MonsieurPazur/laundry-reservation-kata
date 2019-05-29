@@ -64,13 +64,13 @@ class ReservationService
      */
     public function create(DateTime $dateTime, string $phone, string $email): Reservation
     {
-        $reservation = new Reservation($dateTime, $phone, $email);
+        $machineId = $this->machineService->getFirstAvailableMachineId();
+        $pin = $this->machineService->generatePIN();
+
+        $reservation = new Reservation($dateTime, $phone, $email, $machineId, $pin);
         $this->reservationRepository->insert($reservation);
         $reservationId = $this->reservationRepository->getLastInsertedId();
         $reservation->setId($reservationId);
-
-        $machineId = $this->machineService->getFirstAvailableMachineId();
-        $pin = $this->machineService->generatePIN();
 
         $this->sendConfirmMail($email, $reservationId, $machineId, $pin);
         $this->lockMachine($machineId, $reservationId, $dateTime, $pin);
@@ -85,6 +85,9 @@ class ReservationService
     public function claim(int $machineId, string $pin): void
     {
         $reservation = $this->reservationRepository->getByMachineId($machineId);
+        if ($reservation->getPIN() === $pin) {
+            $this->reservationRepository->updateAsUsed($reservation->getId());
+        }
     }
 
     /**
