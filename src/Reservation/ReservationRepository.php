@@ -64,16 +64,6 @@ class ReservationRepository implements RepositoryInterface
     {
     }
 
-
-    /**
-     * Resets failed reservation claim attemps to 0.
-     *
-     * @param int $reservationId reservation to update
-     */
-    public function resetFailedAttempts(int $reservationId): void
-    {
-    }
-
     /**
      * Gets number of failed reservation claim attempts.
      *
