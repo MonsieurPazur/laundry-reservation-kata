@@ -87,6 +87,7 @@ class ReservationService
         $reservation = $this->reservationRepository->getByMachineId($machineId);
         if ($reservation->getPIN() === $pin) {
             $this->reservationRepository->updateAsUsed($reservation->getId());
+            $this->machineService->unlock($machineId, $reservation->getId());
         }
     }
 

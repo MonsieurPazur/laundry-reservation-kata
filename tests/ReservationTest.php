@@ -109,14 +109,22 @@ class ReservationTest extends TestCase
      */
     public function testClaimReservation(): void
     {
+        // Getting reservation from repository.
         $this->reservationRepository->expects($this->once())
             ->method('getByMachineId')
             ->with($this->equalTo(1))
             ->willReturn($this->getSampleRawReservation());
 
+        // Updating after successful claim.
         $this->reservationRepository->expects($this->once())
             ->method('updateAsUsed')
             ->with($this->equalTo(69));
+
+        // Unlocking machine.
+        $this->machineApi->expects($this->once())
+            ->method('unlock')
+            ->with($this->equalTo(1), $this->equalTo(69));
+        
         $this->reservationService->claim(1, 49971);
     }
 
