@@ -8,6 +8,7 @@ namespace App\Reservation;
 
 use App\Email\EmailService;
 use App\Machine\MachineService;
+use App\SMS\SMSService;
 use DateTime;
 use Exception;
 
@@ -34,6 +35,11 @@ class ReservationService
     private $emailService;
 
     /**
+     * @var SMSService $emailService service for sending SMS
+     */
+    private $smsService;
+
+    /**
      * @var MachineService $machineService service for getting machine data
      */
     private $machineService;
@@ -43,15 +49,18 @@ class ReservationService
      *
      * @param ReservationRepository $reservationRepository
      * @param EmailService $emailService
+     * @param SMSService $smsService
      * @param MachineService $machineService
      */
     public function __construct(
         ReservationRepository $reservationRepository,
         EmailService $emailService,
+        SMSService $smsService,
         MachineService $machineService
     ) {
         $this->reservationRepository = $reservationRepository;
         $this->emailService = $emailService;
+        $this->smsService = $smsService;
         $this->machineService = $machineService;
     }
 
@@ -135,18 +144,38 @@ class ReservationService
 
         // If this is last allowed failed attempt (hence -1).
         if (self::MAX_FAILED_ATTEMPTS - 1 === $failedAttempts) {
-            $newPIN = $this->machineService->generatePIN();
+            $newPin = $this->machineService->generatePIN();
 
             // Updating new PIN.
-            $this->reservationRepository->updatePIN($reservation->getId(), $newPIN);
+            $this->reservationRepository->updatePIN($reservation->getId(), $newPin);
 
             // Locking machine with new PIN.
-            $this->machineService->lock($machineId, $reservation->getId(), $reservation->getDateTime(), $newPIN);
+            $this->machineService->lock($machineId, $reservation->getId(), $reservation->getDateTime(), $newPin);
+
+            // Sending SMS with new PIN.
+            $this->sendResetSMS($reservation->getPhone(), $newPin);
 
             // Resetting failed attempts counter.
             $this->reservationRepository->updateFailedAttempts($reservation->getId(), 0);
         } else {
             $this->reservationRepository->updateFailedAttempts($reservation->getId(), $failedAttempts + 1);
         }
+    }
+
+    /**
+     * Helper; sends SMS with new PIN via SMSService.
+     *
+     * @param string $phone where to
+     * @param string $pin new code
+     */
+    private function sendResetSMS(string $phone, string $pin): void
+    {
+        $this->smsService->send(
+            SMSService::EVENT_RESET_PIN,
+            $phone,
+            [
+                'pin' => $pin
+            ]
+        );
     }
 }

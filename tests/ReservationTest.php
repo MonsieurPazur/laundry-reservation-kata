@@ -12,6 +12,7 @@ use App\Machine\MachineService;
 use App\Reservation\Reservation;
 use App\Reservation\ReservationRepository;
 use App\Reservation\ReservationService;
+use App\SMS\SMSService;
 use DateTime;
 use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -51,6 +52,11 @@ class ReservationTest extends TestCase
     private $emailService;
 
     /**
+     * @var MockObject|SMSService $smsService mock for sending SMS
+     */
+    private $smsService;
+
+    /**
      * @var Reservation $sampleReservation predefined reservation
      */
     private $sampleReservation;
@@ -79,6 +85,10 @@ class ReservationTest extends TestCase
             ->setMethods(['send'])
             ->getMock();
 
+        $this->smsService = $this->getMockBuilder(SMSService::class)
+            ->setMethods(['send'])
+            ->getMock();
+
         $this->machineApi = $this->getMockBuilder(MachineAPI::class)
             ->setMethods(['lock', 'unlock'])
             ->getMock();
@@ -91,6 +101,7 @@ class ReservationTest extends TestCase
         $this->reservationService = new ReservationService(
             $this->reservationRepository,
             $this->emailService,
+            $this->smsService,
             $this->machineService
         );
 
@@ -251,11 +262,14 @@ class ReservationTest extends TestCase
             ->method('generatePIN')
             ->willReturn($newPin);
 
-        $this->SMSService->expects($this->once())
+        $this->smsService->expects($this->once())
             ->method('send')
             ->with(
+                $this->equalTo(SMSService::EVENT_RESET_PIN),
                 $this->equalTo($this->sampleReservation->getPhone()),
-                $this->equalTo($newPin)
+                $this->equalTo([
+                    'pin' => $newPin
+                ])
             );
 
         for ($i = 0; $i < 5; $i++) {

@@ -14,7 +14,7 @@ namespace App\Email;
 class EmailService
 {
     /**
-     * @var string confirmation email event
+     * @var string reservation confirmation event
      */
     public const EVENT_CONFIRM = 'confirm';
 
